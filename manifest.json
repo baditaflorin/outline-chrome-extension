@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Outline Clipper",
+  "version": "1.0",
+  "description": "Send selected text to your Outline wiki.",
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Outline Clipper"
+  }
+}
