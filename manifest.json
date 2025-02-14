@@ -6,10 +6,12 @@
   "permissions": [
     "contextMenus",
     "storage",
-    "scripting"
+    "scripting",
+    "notifications"
   ],
   "host_permissions": [
-    "https://0memory.com/*"
+    "https://0memory.com/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -17,5 +19,11 @@
   "options_page": "options.html",
   "action": {
     "default_title": "Outline Clipper"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["turndown.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
