@@ -8,6 +8,9 @@
     "storage",
     "scripting"
   ],
+  "host_permissions": [
+    "https://0memory.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
