@@ -8,17 +8,7 @@
     const INITIAL_BACKOFF = 500; // in milliseconds
 
     // --- Custom Error Classes ---
-
-    /**
-     * Custom error class for Outline API errors.
-     * @extends Error
-     */
     class OutlineApiError extends Error {
-        /**
-         * Creates an instance of OutlineApiError.
-         * @param {string} message - The error message.
-         * @param {number} status - HTTP status code.
-         */
         constructor(message, status) {
             super(message);
             this.name = "OutlineApiError";
@@ -27,11 +17,6 @@
     }
 
     // --- Logging Helper ---
-
-    /**
-     * Logs debug messages when DEBUG_MODE is enabled.
-     * @param {...any} args - Arguments to log.
-     */
     function debugLog(...args) {
         if (DEBUG_MODE) {
             console.log(...args);
@@ -39,15 +24,6 @@
     }
 
     // --- Helper Functions ---
-
-    /**
-     * Fetch with timeout.
-     * Rejects if the request does not complete within the specified time.
-     * @param {string} url - The URL to fetch.
-     * @param {object} [options={}] - Fetch options.
-     * @param {number} [timeout=FETCH_TIMEOUT] - Timeout in milliseconds.
-     * @returns {Promise<Response>}
-     */
     async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {
@@ -65,15 +41,6 @@
         });
     }
 
-    /**
-     * Retry fetch with exponential backoff.
-     * Retries the fetch up to maxRetries times if a transient error occurs.
-     * @param {string} url - The URL to fetch.
-     * @param {object} [options={}] - Fetch options.
-     * @param {number} [maxRetries=MAX_RETRIES] - Maximum number of retries.
-     * @param {number} [backoff=INITIAL_BACKOFF] - Initial backoff delay in ms.
-     * @returns {Promise<Response>}
-     */
     async function retryFetch(url, options = {}, maxRetries = MAX_RETRIES, backoff = INITIAL_BACKOFF) {
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
@@ -88,12 +55,6 @@
         }
     }
 
-    /**
-     * Parse API error response to produce a standardized error message.
-     * @param {Response} response - The fetch Response object.
-     * @param {string} defaultErrorText - Default error text.
-     * @returns {Promise<string>} Parsed error message.
-     */
     async function parseApiError(response, defaultErrorText) {
         let errorMsg = `Error (Status: ${response.status})`;
         try {
@@ -111,11 +72,6 @@
         return errorMsg;
     }
 
-    /**
-     * Wrap chrome.storage.local.get in a Promise.
-     * @param {string} key - The key to get.
-     * @returns {Promise<any>}
-     */
     function getLocalStorage(key) {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get(key, (result) => {
@@ -128,11 +84,6 @@
         });
     }
 
-    /**
-     * Wrap chrome.storage.local.set in a Promise.
-     * @param {object} items - Items to set.
-     * @returns {Promise<void>}
-     */
     function setLocalStorage(items) {
         return new Promise((resolve, reject) => {
             chrome.storage.local.set(items, () => {
@@ -145,10 +96,6 @@
         });
     }
 
-    /**
-     * Retrieve user settings from chrome.storage.sync.
-     * @returns {Promise<{outlineUrl: string, apiToken: string}>}
-     */
     async function getSettings() {
         return new Promise((resolve, reject) => {
             chrome.storage.sync.get(["outlineUrl", "apiToken"], (result) => {
@@ -163,12 +110,6 @@
         });
     }
 
-    /**
-     * Create a notification.
-     * @param {string} title - Notification title.
-     * @param {string} message - Notification message.
-     * @param {string} [iconUrl=NOTIFICATION_ICON] - Icon URL.
-     */
     function notifyUser(title, message, iconUrl = NOTIFICATION_ICON) {
         chrome.notifications.create({
             type: "basic",
@@ -178,12 +119,6 @@
         });
     }
 
-    /**
-     * Execute a script in the context of the given tab.
-     * @param {number} tabId - The ID of the tab.
-     * @param {object} details - Details for chrome.scripting.executeScript.
-     * @returns {Promise<any>} The result of the executed script.
-     */
     async function executeScriptOnTab(tabId, details) {
         try {
             const [result] = await chrome.scripting.executeScript({
@@ -197,11 +132,6 @@
         }
     }
 
-    /**
-     * Build the metadata Markdown table.
-     * @param {object} params - Parameters for the table.
-     * @returns {string} Markdown formatted metadata table.
-     */
     function createMetaTable({ pageTitle, tabUrl, metaAuthor, metaPublished, createdDate, clippedDate }) {
         return `
 | Field        | Value                                          |
@@ -217,14 +147,6 @@
 
     // --- Outline API Communication Layer ---
     const OutlineAPI = {
-        /**
-         * Create a collection in Outline.
-         * @param {string} outlineUrl - The Outline API URL.
-         * @param {string} apiToken - The API token.
-         * @param {string} collectionName - The name of the collection.
-         * @returns {Promise<string>} The collection ID.
-         * @throws {OutlineApiError}
-         */
         async createCollection(outlineUrl, apiToken, collectionName) {
             const endpoint = `${outlineUrl}/collections.create`;
             debugLog("Sending POST request to:", endpoint);
@@ -250,19 +172,6 @@
             return data.data.id;
         },
 
-        /**
-         * Create a document in Outline.
-         * @param {object} params - Parameters for document creation.
-         * @param {string} params.outlineUrl - The Outline API URL.
-         * @param {string} params.apiToken - The API token.
-         * @param {string} params.title - Document title.
-         * @param {string} params.text - Document content.
-         * @param {string} params.collectionId - The collection ID.
-         * @param {boolean} [params.publish=true] - Whether to publish the document.
-         * @param {string} [params.parentDocumentId=""] - Optional parent document ID.
-         * @returns {Promise<object>} Document data.
-         * @throws {OutlineApiError}
-         */
         async createDocument({ outlineUrl, apiToken, title, text, collectionId, publish = true, parentDocumentId = "" }) {
             const payload = { title, text, collectionId, publish };
             if (parentDocumentId && parentDocumentId.trim() !== "") {
@@ -287,9 +196,119 @@
         }
     };
 
-    // --- Main Logic ---
+    // --- Progress Overlay Injection Functions ---
+    // We inject these directly into the active tab using chrome.scripting.executeScript.
 
-    // On extension installation, create the context menu item.
+    // Function to show the progress overlay (with spinner).
+    function showProgressOverlay() {
+        if (document.getElementById('outline-progress-overlay')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'outline-progress-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        overlay.style.display = 'flex';
+        overlay.style.flexDirection = 'column';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '999999';
+
+        // Create spinner element.
+        const spinner = document.createElement('div');
+        spinner.style.border = '16px solid #f3f3f3';
+        spinner.style.borderTop = '16px solid #3498db';
+        spinner.style.borderRadius = '50%';
+        spinner.style.width = '80px';
+        spinner.style.height = '80px';
+        spinner.style.animation = 'outline-spin 2s linear infinite';
+        overlay.appendChild(spinner);
+
+        // Inject keyframes for spinner animation.
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes outline-spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+          }
+        `;
+        overlay.appendChild(style);
+
+        // Status text.
+        const text = document.createElement('div');
+        text.id = 'outline-progress-text';
+        text.textContent = 'Sending to Outline...';
+        text.style.color = '#fff';
+        text.style.fontSize = '20px';
+        text.style.marginTop = '20px';
+        overlay.appendChild(text);
+
+        document.body.appendChild(overlay);
+    }
+
+    // Function to show a success animation in the overlay.
+    function showSuccessOverlay() {
+        const overlay = document.getElementById('outline-progress-overlay');
+        if (overlay) {
+            overlay.innerHTML = '';
+            const checkmark = document.createElement('div');
+            checkmark.textContent = '✔';
+            checkmark.style.fontSize = '64px';
+            checkmark.style.color = '#2ecc71';
+            checkmark.style.opacity = '0';
+            checkmark.style.transition = 'opacity 0.5s ease-in-out';
+            overlay.appendChild(checkmark);
+            setTimeout(() => { checkmark.style.opacity = '1'; }, 100);
+            const message = document.createElement('div');
+            message.textContent = 'Document created successfully!';
+            message.style.color = '#fff';
+            message.style.fontSize = '20px';
+            message.style.marginTop = '20px';
+            message.style.opacity = '0';
+            message.style.transition = 'opacity 0.5s ease-in-out';
+            overlay.appendChild(message);
+            setTimeout(() => { message.style.opacity = '1'; }, 100);
+            setTimeout(() => {
+                overlay.style.transition = 'opacity 0.5s ease-in-out';
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.remove(); }, 500);
+            }, 2000);
+        }
+    }
+
+    // Function to show an error animation in the overlay.
+    function showErrorOverlay(errorMessage) {
+        const overlay = document.getElementById('outline-progress-overlay');
+        if (overlay) {
+            overlay.innerHTML = '';
+            const cross = document.createElement('div');
+            cross.textContent = '✖';
+            cross.style.fontSize = '64px';
+            cross.style.color = '#e74c3c';
+            cross.style.opacity = '0';
+            cross.style.transition = 'opacity 0.5s ease-in-out';
+            overlay.appendChild(cross);
+            setTimeout(() => { cross.style.opacity = '1'; }, 100);
+            const message = document.createElement('div');
+            message.textContent = errorMessage || 'An error occurred.';
+            message.style.color = '#fff';
+            message.style.fontSize = '20px';
+            message.style.marginTop = '20px';
+            message.style.opacity = '0';
+            message.style.transition = 'opacity 0.5s ease-in-out';
+            overlay.appendChild(message);
+            setTimeout(() => { message.style.opacity = '1'; }, 100);
+            setTimeout(() => {
+                overlay.style.transition = 'opacity 0.5s ease-in-out';
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.remove(); }, 500);
+            }, 2000);
+        }
+    }
+
+    // --- Main Logic ---
     chrome.runtime.onInstalled.addListener(() => {
         debugLog("Extension installed, creating context menu item.");
         chrome.contextMenus.create(
@@ -308,16 +327,20 @@
         );
     });
 
-    // Listen for context menu click events.
     chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-        debugLog("Context menu clicked. Info:", info);
         if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
             debugLog("Invalid context menu selection.");
             return;
         }
         debugLog("Plain text selected:", info.selectionText);
+
+        // Show the progress overlay on the current tab.
+        await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            func: showProgressOverlay
+        });
+
         try {
-            // Retrieve settings (Outline URL and API token)
             const { outlineUrl, apiToken } = await getSettings();
             if (!outlineUrl || !apiToken) {
                 throw new Error("Outline URL or API token not set. Please configure them in the options page.");
@@ -325,7 +348,7 @@
             debugLog("Using Outline URL:", outlineUrl);
             debugLog("Using API token:", apiToken);
 
-            // Get (or create) the collection.
+            // Get or create the collection.
             const collectionName = "Chrome Clippings";
             let collectionId;
             const localCollection = await getLocalStorage("collectionId");
@@ -351,15 +374,13 @@
             }
             debugLog("Meta data retrieved:", metaData);
 
-            // Retrieve and convert the HTML of the current selection to Markdown.
+            // Convert selection HTML to Markdown.
             let markdownContent = "";
             if (tab && tab.id) {
-                // Inject Turndown library if needed.
                 await chrome.scripting.executeScript({
                     target: { tabId: tab.id },
                     files: ["lib/turndown.js"]
                 }).catch(err => debugLog("Error injecting Turndown library:", err));
-                // Convert selection to Markdown.
                 markdownContent = await executeScriptOnTab(tab.id, {
                     func: () => {
                         const selection = window.getSelection();
@@ -383,7 +404,7 @@
             }
             debugLog("Markdown content retrieved:", markdownContent);
 
-            // Build document title using the page title and a snippet of the selection.
+            // Build document title.
             const pageTitle = (tab && tab.title) ? tab.title.trim() : "";
             const selectionSnippet = info.selectionText.split(" ").slice(0, 10).join(" ");
             let docTitle = pageTitle && selectionSnippet
@@ -405,7 +426,6 @@
                 createdDate,
                 clippedDate
             });
-
             const finalText = metaTable + "\n\n" + markdownContent;
 
             // --- Domain Folder Logic ---
@@ -434,7 +454,7 @@
                 }
             }
 
-            // Create the clipping document as a child of the domain folder.
+            // Create the clipping document.
             const documentData = await OutlineAPI.createDocument({
                 outlineUrl,
                 apiToken,
@@ -446,10 +466,21 @@
             });
             debugLog("Document created successfully:", documentData);
 
-            // Notify the user that the document was created.
+            // Update the overlay to show success.
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: showSuccessOverlay
+            });
+
             notifyUser("Document Created", `Document "${documentData.title}" created successfully in Outline.`);
         } catch (error) {
             debugLog("Error processing the context menu action:", error);
+            // Update the overlay to show an error.
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: showErrorOverlay,
+                args: [error.message]
+            });
             notifyUser("Error", error.message);
         }
     });
