@@ -7,73 +7,155 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    color: #1d1d1f;
 }
+
 .container {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    padding: 20px;
-    width: 320px;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    padding: 32px;
+    width: 380px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+.container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.15);
+}
+
 h1 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 600;
-    color: #333;
+    color: #1d1d1f;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
+    letter-spacing: -0.5px;
 }
+
 form > div {
-    margin-bottom: 15px;
+    margin-bottom: 24px;
 }
+
 label {
     display: block;
     font-size: 14px;
-    color: #666;
-    margin-bottom: 5px;
+    color: #86868b;
+    margin-bottom: 8px;
+    font-weight: 500;
 }
-input[type="text"],
-input[type="password"] {
+
+input[type="text"] {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    border: 1px solid #d2d2d7;
+    border-radius: 12px;
     box-sizing: border-box;
+    transition: all 0.2s ease;
+    background-color: #f5f5f7;
 }
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #0071e3;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+}
+
 .api-token-wrapper {
     position: relative;
 }
+
 .reveal-btn {
     position: absolute;
-    right: 10px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
     font-size: 14px;
-    color: #007aff;
+    color: #0071e3;
+    font-weight: 500;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
 }
+
+.reveal-btn:hover {
+    background-color: rgba(0, 113, 227, 0.1);
+}
+
 button[type="submit"],
 button#checkConnection {
     width: 100%;
-    padding: 10px;
-    background: #007aff;
+    padding: 12px;
+    background: #0071e3;
     border: none;
-    border-radius: 6px;
-    color: #fff;
+    border-radius: 12px;
+    color: #ffffff;
     font-size: 16px;
+    font-weight: 500;
     cursor: pointer;
-    transition: background 0.3s;
-    margin-top: 10px;
+    transition: all 0.2s ease;
+    margin-top: 12px;
 }
+
 button[type="submit"]:hover,
 button#checkConnection:hover {
-    background: #4ac122;
+    background: #0077ed;
+    transform: translateY(-1px);
 }
+
+button#checkConnection {
+    background: #f5f5f7;
+    color: #1d1d1f;
+    border: 1px solid #d2d2d7;
+}
+
+button#checkConnection:hover {
+    background: #ffffff;
+    border-color: #86868b;
+}
+
 #connectionStatus {
     text-align: center;
-    margin-top: 10px;
+    margin-top: 16px;
     font-size: 14px;
+    color: #86868b;
+    min-height: 20px;
+}
+
+.footer {
+    margin-top: 24px;
+    text-align: center;
+    padding-top: 24px;
+    border-top: 1px solid #d2d2d7;
+}
+
+.github-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #86868b;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.github-link:hover {
+    background-color: #f5f5f7;
+    color: #1d1d1f;
+}
+
+.github-icon {
+    transition: transform 0.2s ease;
+}
+
+.github-link:hover .github-icon {
+    transform: scale(1.1);
 }
