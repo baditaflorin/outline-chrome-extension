@@ -2,6 +2,7 @@
 // Enhanced Storage Manager with in-memory caching
 
 const cache = {};
+let outlineApiInstance = null;
 
 /**
  * Retrieves a value from Chrome storage (sync by default) with caching.
@@ -72,15 +73,19 @@ export async function getSettings() {
 
 /**
  * **New Helper Function**
- * Creates and returns an instance of OutlineAPI after retrieving settings.
+ * Creates and returns a cached instance of OutlineAPI after retrieving settings.
  *
  * @returns {Promise<OutlineAPI>}
  */
 import { OutlineAPI } from './outlineAPI.js';
 export async function getOutlineAPI() {
+    if (outlineApiInstance) {
+        return outlineApiInstance;
+    }
     const { outlineUrl, apiToken } = await getSettings();
     if (!outlineUrl || !apiToken) {
         throw new Error("Outline URL or API token is not set. Please configure them in the options page.");
     }
-    return new OutlineAPI(outlineUrl, apiToken);
+    outlineApiInstance = new OutlineAPI(outlineUrl, apiToken);
+    return outlineApiInstance;
 }
