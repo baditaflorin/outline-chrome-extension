@@ -115,23 +115,6 @@ export function setLocalStorage(items) {
     });
 }
 
-/**
- * Retrieves settings from chrome.storage.sync.
- * @returns {Promise<Object>} The settings object.
- */
-export function getSettings() {
-    return new Promise((resolve, reject) => {
-        chrome.storage.sync.get(["outlineUrl", "apiToken"], (result) => {
-            if (chrome.runtime.lastError) {
-                debugLog("Error retrieving settings:", chrome.runtime.lastError);
-                reject(chrome.runtime.lastError);
-            } else {
-                debugLog("Settings retrieved:", result);
-                resolve(result);
-            }
-        });
-    });
-}
 
 /**
  * Executes a script on a given tab and returns the result.
