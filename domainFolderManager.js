@@ -4,6 +4,9 @@ import { OutlineAPI } from './outlineAPI.js';
 
 export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId, tab) {
     let parentDocumentId = "";
+    // Create an instance of OutlineAPI
+    const outlineApi = new OutlineAPI(outlineUrl, apiToken);
+
     if (tab && tab.url) {
         const rawDomain = new URL(tab.url).hostname;
         const domain = rawDomain.replace(/^www\./, '');
@@ -12,13 +15,12 @@ export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId
 
         if (domainFolders[domain]) {
             const existingFolderId = domainFolders[domain];
-            let folderDoc = await OutlineAPI.getDocument(outlineUrl, apiToken, existingFolderId);
+            // Use the instance method instead of a static method.
+            let folderDoc = await outlineApi.getDocument(existingFolderId);
             debugLog(`Full folder object for ${domain}:`, folderDoc);
             if (!folderDoc || folderDoc.deletedAt || folderDoc.archivedAt) {
                 debugLog(`Folder for ${domain} is either missing, deleted, or archived. Recreating...`);
-                const newFolder = await OutlineAPI.createDocument({
-                    outlineUrl,
-                    apiToken,
+                const newFolder = await outlineApi.createDocument({
                     title: domain,
                     text: `Folder for clippings from ${domain}`,
                     collectionId,
@@ -34,9 +36,7 @@ export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId
                 debugLog(`Found existing folder for ${domain}: ${parentDocumentId}`);
             }
         } else {
-            const folderDoc = await OutlineAPI.createDocument({
-                outlineUrl,
-                apiToken,
+            const folderDoc = await outlineApi.createDocument({
                 title: domain,
                 text: `Folder for clippings from ${domain}`,
                 collectionId,

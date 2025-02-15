@@ -101,10 +101,11 @@ export async function executeScriptOnTab(tabId, details) {
         });
         return result.result;
     } catch (error) {
-        debugLog("Error executing script on tab:", error);
-        return null;
+        debugLog("Error executing script on tab:", details, "Error:", error);
+        throw new Error(`Script execution failed: ${error.message}`);
     }
 }
+
 
 export function createMetaTable({ pageTitle, tabUrl, metaAuthor, metaPublished, createdDate, clippedDate }) {
     return `
