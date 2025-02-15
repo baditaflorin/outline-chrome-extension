@@ -24,7 +24,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["turndown.js"],
+      "resources": ["turndown.js", "PRIVACY.md"],
       "matches": ["<all_urls>"]
     }
   ]
