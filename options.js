@@ -66,9 +66,11 @@ document.addEventListener("DOMContentLoaded", () => {
             connectionStatusDiv.textContent = "Please provide both the API Base URL and token.";
             return;
         }
-        const testEndpoint = `${baseUrl}/api/users.me`; // Using users.me as a test endpoint.
+        // Use the correct endpoint for retrieving authentication details.
+        const testEndpoint = `${baseUrl}/api/auth.info`;
         try {
             const response = await fetch(testEndpoint, {
+                method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
