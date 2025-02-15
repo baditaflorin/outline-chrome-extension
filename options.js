@@ -1,4 +1,6 @@
 // options.js
+import { getSettings, set as saveToStorage } from './storageManager.js';
+
 document.addEventListener("DOMContentLoaded", () => {
     class OptionsController {
         constructor() {
@@ -33,17 +35,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         loadSettings() {
-            chrome.storage.sync.get(["outlineUrl", "apiToken"], (result) => {
-                if (result.outlineUrl) {
-                    this.outlineUrlInput.value = result.outlineUrl;
-                }
-                if (result.apiToken) {
-                    this.apiTokenInput.dataset.fullToken = result.apiToken;
-                    this.apiTokenInput.value = this.maskToken(result.apiToken);
-                    this.apiTokenInput.readOnly = true;
-                    this.toggleBtn.textContent = "Show";
-                }
-            });
+            getSettings()
+                .then((result) => {
+                    if (result.outlineUrl) {
+                        this.outlineUrlInput.value = result.outlineUrl;
+                    }
+                    if (result.apiToken) {
+                        this.apiTokenInput.dataset.fullToken = result.apiToken;
+                        this.apiTokenInput.value = this.maskToken(result.apiToken);
+                        this.apiTokenInput.readOnly = true;
+                        this.toggleBtn.textContent = "Show";
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error loading settings:", err);
+                });
         }
 
         toggleTokenVisibility() {
@@ -75,9 +81,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
             outlineUrl = outlineUrl.replace(/\/+$/, '');
-            chrome.storage.sync.set({ outlineUrl, apiToken }, () => {
-                alert("Settings saved!");
-            });
+            saveToStorage({ outlineUrl, apiToken }, true)
+                .then(() => alert("Settings saved!"))
+                .catch((err) => {
+                    console.error("Error saving settings:", err);
+                    alert("Error saving settings.");
+                });
         }
 
         async checkConnection() {
