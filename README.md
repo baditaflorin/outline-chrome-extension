@@ -97,4 +97,12 @@ If you encounter any issues or have questions, please:
 
 ---
 
+### LLM
+Extract 
+```bash
+codexgigantus --ignore-file .DS_Store,.gitignore,LICENSE,icon.png,PRIVACY.md --ignore-ext zip --ignore-dir lib,.git,.idea,.store > chatgpt.txt
+```
+
+
+
 Made with ❤️ for the Outline community

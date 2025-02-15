@@ -1,6 +1,8 @@
 // storageManager.js
 // Enhanced Storage Manager with in-memory caching
 
+import {getLocalStorage} from "./utils.js";
+
 const cache = {};
 let outlineApiInstance = null;
 
@@ -63,13 +65,15 @@ export function set(items, useSync = true) {
  */
 export async function getSettings() {
     try {
-        const result = await get(["outlineUrl", "apiToken"], true);
-        return result;
+        const syncSettings = await get(["outlineUrl", "apiToken"], true);
+        const localSettings = await getLocalStorage("collectionId");
+        return { ...syncSettings, ...localSettings };
     } catch (error) {
         console.error("Error retrieving settings:", error);
         throw error;
     }
 }
+
 
 /**
  * **New Helper Function**
