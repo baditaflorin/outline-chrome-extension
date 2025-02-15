@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 680">
+    <!-- Background with Grid -->
+    <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f3f5" stroke-width="1"/>
+        </pattern>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <rect width="920" height="680" fill="url(#bgGradient)"/>
+    <rect width="920" height="680" fill="url(#grid)"/>
+
+    <!-- Browser Window -->
+    <rect x="100" y="80" width="720" height="520" rx="12" fill="white" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.1))"/>
+    <rect x="100" y="80" width="720" height="40" rx="12" fill="#f1f3f5"/>
+    <circle cx="130" cy="100" r="6" fill="#dee2e6"/>
+    <circle cx="150" cy="100" r="6" fill="#dee2e6"/>
+    <circle cx="170" cy="100" r="6" fill="#dee2e6"/>
+
+    <!-- URL Bar -->
+    <rect x="200" y="90" width="520" height="20" rx="4" fill="white"/>
+    <text x="220" y="104" font-family="Arial, sans-serif" font-size="12" fill="#868e96">https://docs.example.com/article</text>
+
+    <!-- Content -->
+    <rect x="140" y="160" width="400" height="24" rx="4" fill="#212529"/>
+    <rect x="140" y="200" width="640" height="12" rx="2" fill="#868e96"/>
+    <rect x="140" y="220" width="600" height="12" rx="2" fill="#868e96"/>
+    <rect x="140" y="240" width="620" height="12" rx="2" fill="#868e96"/>
+
+    <!-- Context Menu -->
+    <rect x="400" y="280" width="200" height="160" rx="8" fill="white" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.15))"/>
+    <text x="420" y="310" font-family="Arial, sans-serif" font-size="14" fill="#212529">Send to Outline</text>
+    <rect x="420" y="320" width="160" height="1" fill="#e9ecef"/>
+
+    <!-- Outline Interface Preview -->
+    <rect x="140" y="320" width="200" height="240" rx="8" fill="#f8f9fa"/>
+    <rect x="160" y="340" width="160" height="16" rx="2" fill="#4263eb"/>
+    <rect x="160" y="370" width="140" height="12" rx="2" fill="#868e96"/>
+    <rect x="160" y="390" width="160" height="12" rx="2" fill="#868e96"/>
+
+    <!-- Logo and Text -->
+    <rect x="700" y="600" width="60" height="60" rx="12" fill="#4263eb"/>
+    <text x="640" y="640" font-family="Arial, sans-serif" font-size="24" fill="#212529" text-anchor="end" font-weight="bold">Outline Clipper</text>
+</svg>
