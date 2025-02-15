@@ -2,11 +2,13 @@
 import { CONTEXT_MENU_ID } from './config.js';
 import { setupNotificationClickListener } from './notificationManager.js';
 import { sendSelectionToOutline } from './clipper.js';
+import { asyncWrapper } from './asyncWrapper.js';
+import { Logger } from './logger.js';
 
 setupNotificationClickListener();
 
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("Extension installed, creating context menu item.");
+    Logger.info("Extension installed, creating context menu item.");
     chrome.contextMenus.create(
         {
             id: CONTEXT_MENU_ID,
@@ -15,19 +17,24 @@ chrome.runtime.onInstalled.addListener(() => {
         },
         () => {
             if (chrome.runtime.lastError) {
-                console.log("Error creating context menu:", chrome.runtime.lastError);
+                Logger.error("Error creating context menu:", chrome.runtime.lastError);
             } else {
-                console.log("Context menu created successfully.");
+                Logger.info("Context menu created successfully.");
             }
         }
     );
 });
 
+// Wrap the context menu click handler in an inline function that uses asyncWrapper.
+// This ensures that any errors in our asynchronous logic are caught and handled.
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
-        console.log("Invalid context menu selection.");
-        return;
-    }
-    // Delegate the core logic to the clipper module.
-    sendSelectionToOutline(tab, info);
+    // We wrap an async function so that errors are caught.
+    asyncWrapper(async () => {
+        if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
+            Logger.debug("Invalid context menu selection.");
+            return;
+        }
+        // Execute the core logic for sending the selection.
+        await sendSelectionToOutline(tab, info);
+    }, tab)(); // Immediately invoke the wrapped function.
 });

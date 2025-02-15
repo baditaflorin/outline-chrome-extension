@@ -10,6 +10,7 @@ import { getSettings } from './storageManager.js'; // Using StorageManager from 
 import { OutlineAPI } from './outlineAPI.js';
 import { showProgressOverlay, showSuccessOverlay } from './overlays.js';
 import { handleError } from './errorHandler.js'; // Centralized error handling
+import { asyncWrapper } from './asyncWrapper.js';
 
 /**
  * Sends the currently selected text to Outline.
@@ -33,7 +34,7 @@ export async function sendSelectionToOutline(tab, info) {
         debugLog("Using Outline URL:", outlineUrl);
         debugLog("Using API token:", apiToken);
 
-        // Create an instance of the OutlineAPI (Change 2).
+        // Create an instance of the OutlineAPI.
         const outlineApi = new OutlineAPI(outlineUrl, apiToken);
 
         // Retrieve or create collection.
@@ -43,7 +44,7 @@ export async function sendSelectionToOutline(tab, info) {
             debugLog("Found existing collectionId:", collectionId);
         } else {
             collectionId = await outlineApi.createCollection(collectionName);
-            // Save the new collectionId using StorageManager (Change 4).
+            // Save the new collectionId using StorageManager.
             await chrome.storage.local.set({ collectionId });
             debugLog("Created and saved new collectionId:", collectionId);
         }
@@ -56,12 +57,14 @@ export async function sendSelectionToOutline(tab, info) {
                 const metaPublished = document.querySelector('meta[property="article:published_time"]')?.content || "(Not specified)";
                 return { metaAuthor, metaPublished };
             },
-        }).then((results) => results[0].result)
+        })
+            .then((results) => results[0].result)
             .catch(() => ({ metaAuthor: "(Not specified)", metaPublished: "(Not specified)" }));
         debugLog("Meta data retrieved:", metaData);
 
-        // Convert selection to Markdown.
-        const markdownContent = await convertSelectionToMarkdown(tab.id, info.selectionText);
+        // Wrap the conversion function with asyncWrapper to ensure consistent error handling.
+        const safeConvertSelectionToMarkdown = asyncWrapper(convertSelectionToMarkdown, tab);
+        const markdownContent = await safeConvertSelectionToMarkdown(tab.id, info.selectionText);
         debugLog("Markdown content retrieved:", markdownContent);
 
         // Build document title.
@@ -114,7 +117,7 @@ export async function sendSelectionToOutline(tab, info) {
         );
     } catch (error) {
         debugLog("Error processing the context menu action:", error);
-        // Delegate error handling to our centralized error handler (Change 3).
+        // Delegate error handling to our centralized error handler.
         handleError(tab, error);
     }
 }

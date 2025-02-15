@@ -1,12 +1,24 @@
 // utils.js
 import { FETCH_TIMEOUT, DEBUG_MODE, MAX_RETRIES, INITIAL_BACKOFF } from './config.js';
+import { asyncWrapper } from './asyncWrapper.js';
 
+/**
+ * Logs debug messages if DEBUG_MODE is enabled.
+ * @param  {...any} args - The messages to log.
+ */
 export function debugLog(...args) {
     if (DEBUG_MODE) {
         console.log(...args);
     }
 }
 
+/**
+ * Fetches a URL with a timeout.
+ * @param {string} url - The URL to fetch.
+ * @param {Object} options - Fetch options.
+ * @param {number} [timeout=FETCH_TIMEOUT] - Timeout in milliseconds.
+ * @returns {Promise<Response>} The fetch response.
+ */
 export async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
@@ -24,6 +36,14 @@ export async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOU
     });
 }
 
+/**
+ * Retries a fetch operation with exponential backoff.
+ * @param {string} url - The URL to fetch.
+ * @param {Object} options - Fetch options.
+ * @param {number} [maxRetries=MAX_RETRIES] - Maximum number of retries.
+ * @param {number} [backoff=INITIAL_BACKOFF] - Initial backoff in milliseconds.
+ * @returns {Promise<Response>} The fetch response.
+ */
 export async function retryFetch(url, options = {}, maxRetries = MAX_RETRIES, backoff = INITIAL_BACKOFF) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
@@ -38,6 +58,12 @@ export async function retryFetch(url, options = {}, maxRetries = MAX_RETRIES, ba
     }
 }
 
+/**
+ * Parses an API error from a fetch response.
+ * @param {Response} response - The fetch response.
+ * @param {string} defaultErrorText - Default error text.
+ * @returns {Promise<string>} The parsed error message.
+ */
 export async function parseApiError(response, defaultErrorText) {
     let errorMsg = `Error (Status: ${response.status})`;
     try {
@@ -55,6 +81,11 @@ export async function parseApiError(response, defaultErrorText) {
     return errorMsg;
 }
 
+/**
+ * Retrieves data from chrome.storage.local.
+ * @param {string|string[]} key - The key(s) to retrieve.
+ * @returns {Promise<Object>} The retrieved data.
+ */
 export function getLocalStorage(key) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(key, (result) => {
@@ -67,6 +98,11 @@ export function getLocalStorage(key) {
     });
 }
 
+/**
+ * Saves items to chrome.storage.local.
+ * @param {Object} items - The items to save.
+ * @returns {Promise<void>}
+ */
 export function setLocalStorage(items) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.set(items, () => {
@@ -79,6 +115,10 @@ export function setLocalStorage(items) {
     });
 }
 
+/**
+ * Retrieves settings from chrome.storage.sync.
+ * @returns {Promise<Object>} The settings object.
+ */
 export function getSettings() {
     return new Promise((resolve, reject) => {
         chrome.storage.sync.get(["outlineUrl", "apiToken"], (result) => {
@@ -93,6 +133,12 @@ export function getSettings() {
     });
 }
 
+/**
+ * Executes a script on a given tab and returns the result.
+ * @param {number} tabId - The target tab ID.
+ * @param {object} details - Details for chrome.scripting.executeScript.
+ * @returns {Promise<*>} The result of the script execution.
+ */
 export async function executeScriptOnTab(tabId, details) {
     try {
         const [result] = await chrome.scripting.executeScript({
@@ -106,7 +152,15 @@ export async function executeScriptOnTab(tabId, details) {
     }
 }
 
+// Create a safe version of executeScriptOnTab using asyncWrapper.
+// This ensures any errors during script execution are handled uniformly.
+export const safeExecuteScriptOnTab = asyncWrapper(executeScriptOnTab, null);
 
+/**
+ * Creates a Markdown table for metadata.
+ * @param {Object} data - Metadata including pageTitle, tabUrl, metaAuthor, metaPublished, createdDate, clippedDate.
+ * @returns {string} The Markdown table.
+ */
 export function createMetaTable({ pageTitle, tabUrl, metaAuthor, metaPublished, createdDate, clippedDate }) {
     return `
 | Field        | Value                                          |
@@ -121,9 +175,9 @@ export function createMetaTable({ pageTitle, tabUrl, metaAuthor, metaPublished, 
 }
 
 /**
- * Creates common API headers for Outline API requests.
+ * Creates API headers for Outline API requests.
  * @param {string} apiToken - The API token for authorization.
- * @returns {Object} - Headers object.
+ * @returns {Object} The headers object.
  */
 export function createApiHeaders(apiToken) {
     return {
