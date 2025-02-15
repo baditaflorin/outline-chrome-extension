@@ -4,6 +4,30 @@ import { OutlineAPI } from './outlineAPI.js';
 import { asyncWrapper } from './asyncWrapper.js';
 
 /**
+ * Helper function to create a domain folder.
+ *
+ * @param {OutlineAPI} outlineApi - An instance of the OutlineAPI.
+ * @param {string} domain - The domain name to use as the folder title.
+ * @param {string} collectionId - The collection ID to use.
+ * @param {object} tab - The current tab object.
+ * @returns {Promise<string>} The ID of the created folder.
+ */
+async function createDomainFolder(outlineApi, domain, collectionId, tab) {
+    const safeCreateDocument = asyncWrapper(async () => {
+        return await outlineApi.createDocument({
+            title: domain,
+            text: `Folder for clippings from ${domain}`,
+            collectionId,
+            publish: true,
+            parentDocumentId: ""
+        });
+    }, tab);
+    const folderDoc = await safeCreateDocument();
+    debugLog(`Created folder for ${domain} with ID: ${folderDoc.id}`);
+    return folderDoc.id;
+}
+
+/**
  * Retrieves or creates a domain folder in Outline for the current tab.
  *
  * @param {string} outlineUrl - The base URL for the Outline API.
@@ -14,7 +38,6 @@ import { asyncWrapper } from './asyncWrapper.js';
  */
 export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId, tab) {
     let parentDocumentId = "";
-    // Create an instance of OutlineAPI.
     const outlineApi = new OutlineAPI(outlineUrl, apiToken);
 
     if (tab && tab.url) {
@@ -25,7 +48,6 @@ export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId
 
         if (domainFolders[domain]) {
             const existingFolderId = domainFolders[domain];
-            // Wrap the getDocument API call with asyncWrapper for uniform error handling.
             const safeGetDocument = asyncWrapper(async () => {
                 return await outlineApi.getDocument(existingFolderId);
             }, tab);
@@ -33,39 +55,16 @@ export async function getOrCreateDomainFolder(outlineUrl, apiToken, collectionId
             let folderDoc = await safeGetDocument();
             debugLog(`Full folder object for ${domain}:`, folderDoc);
             if (!folderDoc || folderDoc.deletedAt || folderDoc.archivedAt) {
-                debugLog(`Folder for ${domain} is either missing, deleted, or archived. Recreating...`);
-                // Wrap the createDocument API call.
-                const safeCreateDocument = asyncWrapper(async () => {
-                    return await outlineApi.createDocument({
-                        title: domain,
-                        text: `Folder for clippings from ${domain}`,
-                        collectionId,
-                        publish: true,
-                        parentDocumentId: ""
-                    });
-                }, tab);
-                const newFolder = await safeCreateDocument();
-                parentDocumentId = newFolder.id;
+                debugLog(`Folder for ${domain} is invalid. Recreating...`);
+                parentDocumentId = await createDomainFolder(outlineApi, domain, collectionId, tab);
                 domainFolders[domain] = parentDocumentId;
                 await setLocalStorage({ domainFolders });
-                debugLog(`Recreated folder for ${domain} with ID: ${parentDocumentId}`);
             } else {
                 parentDocumentId = existingFolderId;
-                debugLog(`Found existing folder for ${domain}: ${parentDocumentId}`);
+                debugLog(`Found valid folder for ${domain}: ${parentDocumentId}`);
             }
         } else {
-            // Wrap the createDocument call when no folder exists.
-            const safeCreateDocument = asyncWrapper(async () => {
-                return await outlineApi.createDocument({
-                    title: domain,
-                    text: `Folder for clippings from ${domain}`,
-                    collectionId,
-                    publish: true,
-                    parentDocumentId: ""
-                });
-            }, tab);
-            const folderDoc = await safeCreateDocument();
-            parentDocumentId = folderDoc.id;
+            parentDocumentId = await createDomainFolder(outlineApi, domain, collectionId, tab);
             domainFolders[domain] = parentDocumentId;
             await setLocalStorage({ domainFolders });
             debugLog(`Created and saved folder for ${domain} with ID: ${parentDocumentId}`);

@@ -2,6 +2,26 @@
 import { executeScriptOnTab, debugLog } from './utils.js';
 import { asyncWrapper } from './asyncWrapper.js';
 
+let turndownLoaded = false;
+
+/**
+ * Loads the Turndown script only once per tab.
+ *
+ * @param {number} tabId - The target tab ID.
+ * @returns {Promise<void>}
+ */
+async function loadTurndownIfNeeded(tabId) {
+    if (turndownLoaded) return;
+    const safeLoadScript = asyncWrapper(async () => {
+        await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ["./lib/turndown.js"]
+        });
+    }, null);
+    await safeLoadScript();
+    turndownLoaded = true;
+}
+
 /**
  * Converts the selected text to Markdown.
  *
@@ -12,16 +32,9 @@ import { asyncWrapper } from './asyncWrapper.js';
 export async function convertSelectionToMarkdown(tabId, defaultText) {
     let markdownContent = "";
     try {
-        // Wrap the script injection for Turndown with asyncWrapper.
-        const loadTurndownScript = asyncWrapper(async () => {
-            await chrome.scripting.executeScript({
-                target: { tabId },
-                files: ["./lib/turndown.js"]
-            });
-        }, null);
-        await loadTurndownScript();
+        // Load Turndown script if not already loaded.
+        await loadTurndownIfNeeded(tabId);
 
-        // Wrap the conversion function with asyncWrapper for uniform error handling.
         const safeConversion = asyncWrapper(async () => {
             return await executeScriptOnTab(tabId, {
                 func: () => {
