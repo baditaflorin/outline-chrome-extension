@@ -18,7 +18,8 @@
   },
   "options_page": "options.html",
   "action": {
-    "default_title": "Outline Clipper"
+    "default_title": "Outline Clipper",
+    "default_popup": "options.html"
   },
   "web_accessible_resources": [
     {

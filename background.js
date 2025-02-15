@@ -7,6 +7,9 @@
     const MAX_RETRIES = 3;
     const INITIAL_BACKOFF = 500; // in milliseconds
 
+    // --- Global Map for Notification URLs ---
+    const notificationUrlMap = {};
+
     // --- Custom Error Classes ---
     class OutlineApiError extends Error {
         constructor(message, status) {
@@ -110,14 +113,31 @@
         });
     }
 
-    function notifyUser(title, message, iconUrl = NOTIFICATION_ICON) {
-        chrome.notifications.create({
+    /**
+     * notifyUser now accepts a clickUrl.
+     * If provided, the notification is saved in a map for the onClicked listener.
+     */
+    function notifyUser(title, message, iconUrl = NOTIFICATION_ICON, clickUrl) {
+        chrome.notifications.create('', {
             type: "basic",
             iconUrl,
             title,
             message
+        }, (notificationId) => {
+            if (clickUrl) {
+                notificationUrlMap[notificationId] = clickUrl;
+            }
         });
     }
+
+    // Listener for notification clicks.
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        if (notificationUrlMap[notificationId]) {
+            chrome.tabs.create({ url: notificationUrlMap[notificationId] });
+            delete notificationUrlMap[notificationId];
+            chrome.notifications.clear(notificationId);
+        }
+    });
 
     async function executeScriptOnTab(tabId, details) {
         try {
@@ -146,9 +166,12 @@
     }
 
     // --- Outline API Communication Layer ---
+    // We assume that the stored outlineUrl is the base URL (e.g. "https://0memory.com")
+    // and we append "/api" for all API calls.
     const OutlineAPI = {
         async createCollection(outlineUrl, apiToken, collectionName) {
-            const endpoint = `${outlineUrl}/collections.create`;
+            const base = outlineUrl.replace(/\/+$/, ''); // remove trailing slash
+            const endpoint = `${base}/api/collections.create`;
             debugLog("Sending POST request to:", endpoint);
             const response = await retryFetch(endpoint, {
                 method: "POST",
@@ -173,12 +196,13 @@
         },
 
         async createDocument({ outlineUrl, apiToken, title, text, collectionId, publish = true, parentDocumentId = "" }) {
+            const base = outlineUrl.replace(/\/+$/, '');
+            const endpoint = `${base}/api/documents.create`;
             const payload = { title, text, collectionId, publish };
             if (parentDocumentId && parentDocumentId.trim() !== "") {
                 payload.parentDocumentId = parentDocumentId;
             }
             debugLog("Sending request to create document with payload:", payload);
-            const endpoint = `${outlineUrl}/documents.create`;
             const response = await retryFetch(endpoint, {
                 method: "POST",
                 headers: {
@@ -193,13 +217,29 @@
             }
             const data = await response.json();
             return data.data;
+        },
+
+        // New helper to check if a document (folder) exists.
+        async getDocument(outlineUrl, apiToken, documentId) {
+            const base = outlineUrl.replace(/\/+$/, '');
+            const endpoint = `${base}/api/documents.info`;
+            const response = await retryFetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiToken}`
+                },
+                body: JSON.stringify({ id: documentId })
+            });
+            if (!response.ok) {
+                return null;
+            }
+            const data = await response.json();
+            return data.data;
         }
     };
 
     // --- Progress Overlay Injection Functions ---
-    // We inject these directly into the active tab using chrome.scripting.executeScript.
-
-    // Function to show the progress overlay (with spinner).
     function showProgressOverlay() {
         if (document.getElementById('outline-progress-overlay')) return;
         const overlay = document.createElement('div');
@@ -216,27 +256,33 @@
         overlay.style.justifyContent = 'center';
         overlay.style.zIndex = '999999';
 
-        // Create spinner element.
         const spinner = document.createElement('div');
         spinner.style.border = '16px solid #f3f3f3';
         spinner.style.borderTop = '16px solid #3498db';
         spinner.style.borderRadius = '50%';
         spinner.style.width = '80px';
         spinner.style.height = '80px';
-        spinner.style.animation = 'outline-spin 2s linear infinite';
+        // Add a CSS class so we can animate both rotation and color change
+        spinner.classList.add("outline-spinner");
         overlay.appendChild(spinner);
 
-        // Inject keyframes for spinner animation.
         const style = document.createElement('style');
         style.textContent = `
-          @keyframes outline-spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-          }
-        `;
+      @keyframes outline-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+      }
+      @keyframes color-change {
+          0% { border-top-color: #3498db; }
+          50% { border-top-color: #e74c3c; }
+          100% { border-top-color: #3498db; }
+      }
+      .outline-spinner {
+          animation: outline-spin 2s linear infinite, color-change 2s linear infinite;
+      }
+    `;
         overlay.appendChild(style);
 
-        // Status text.
         const text = document.createElement('div');
         text.id = 'outline-progress-text';
         text.textContent = 'Sending to Outline...';
@@ -248,7 +294,6 @@
         document.body.appendChild(overlay);
     }
 
-    // Function to show a success animation in the overlay.
     function showSuccessOverlay() {
         const overlay = document.getElementById('outline-progress-overlay');
         if (overlay) {
@@ -278,7 +323,6 @@
         }
     }
 
-    // Function to show an error animation in the overlay.
     function showErrorOverlay(errorMessage) {
         const overlay = document.getElementById('outline-progress-overlay');
         if (overlay) {
@@ -334,7 +378,7 @@
         }
         debugLog("Plain text selected:", info.selectionText);
 
-        // Show the progress overlay on the current tab.
+        // Show the progress overlay in the active tab.
         await chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: showProgressOverlay
@@ -348,7 +392,7 @@
             debugLog("Using Outline URL:", outlineUrl);
             debugLog("Using API token:", apiToken);
 
-            // Get or create the collection.
+            // Get (or create) the collection.
             const collectionName = "Chrome Clippings";
             let collectionId;
             const localCollection = await getLocalStorage("collectionId");
@@ -374,7 +418,7 @@
             }
             debugLog("Meta data retrieved:", metaData);
 
-            // Convert selection HTML to Markdown.
+            // Convert HTML selection to Markdown.
             let markdownContent = "";
             if (tab && tab.id) {
                 await chrome.scripting.executeScript({
@@ -431,13 +475,41 @@
             // --- Domain Folder Logic ---
             let parentDocumentId = "";
             if (tab && tab.url) {
-                const domain = new URL(tab.url).hostname;
+                // Get domain and strip any "www." prefix.
+                const rawDomain = new URL(tab.url).hostname;
+                const domain = rawDomain.replace(/^www\./, '');
+
                 let domainFoldersData = await getLocalStorage("domainFolders");
                 let domainFolders = domainFoldersData.domainFolders || {};
+
                 if (domainFolders[domain]) {
-                    parentDocumentId = domainFolders[domain];
-                    debugLog(`Found existing folder for ${domain}: ${parentDocumentId}`);
+                    const existingFolderId = domainFolders[domain];
+                    // Check if the folder still exists on the server.
+                    let folderDoc = await OutlineAPI.getDocument(outlineUrl, apiToken, existingFolderId);
+                    // Log full content of the folderDoc for debugging.
+                    debugLog(`Full folder object for ${domain}:`, folderDoc);
+                    // Check both for deletion and archival.
+                    if (!folderDoc || folderDoc.deletedAt || folderDoc.archivedAt) {
+                        debugLog(`Folder for ${domain} is either missing, deleted, or archived. Recreating...`);
+                        const newFolder = await OutlineAPI.createDocument({
+                            outlineUrl,
+                            apiToken,
+                            title: domain,
+                            text: `Folder for clippings from ${domain}`,
+                            collectionId,
+                            publish: true,
+                            parentDocumentId: ""
+                        });
+                        parentDocumentId = newFolder.id;
+                        domainFolders[domain] = parentDocumentId;
+                        await setLocalStorage({ domainFolders });
+                        debugLog(`Recreated folder for ${domain} with ID: ${parentDocumentId}`);
+                    } else {
+                        parentDocumentId = existingFolderId;
+                        debugLog(`Found existing folder for ${domain}: ${parentDocumentId}`);
+                    }
                 } else {
+                    // No folder exists—create one.
                     const folderDoc = await OutlineAPI.createDocument({
                         outlineUrl,
                         apiToken,
@@ -466,16 +538,24 @@
             });
             debugLog("Document created successfully:", documentData);
 
+            // Generate a URL for the document.
+            const docUrl = documentData.url || `${outlineUrl.replace(/\/+$/, '')}/doc/${documentData.id}`;
+
             // Update the overlay to show success.
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: showSuccessOverlay
             });
 
-            notifyUser("Document Created", `Document "${documentData.title}" created successfully in Outline.`);
+            // Show a clickable notification.
+            notifyUser(
+                "Document Created",
+                `Document "${documentData.title}" created successfully in Outline. Click here to open it.`,
+                NOTIFICATION_ICON,
+                docUrl
+            );
         } catch (error) {
             debugLog("Error processing the context menu action:", error);
-            // Update the overlay to show an error.
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: showErrorOverlay,
