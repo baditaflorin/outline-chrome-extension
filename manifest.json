@@ -10,7 +10,6 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://0memory.com/*",
     "https://*/*"
   ],
   "background": {
