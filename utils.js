@@ -118,3 +118,15 @@ export function createMetaTable({ pageTitle, tabUrl, metaAuthor, metaPublished, 
 | Clipped Date | ${clippedDate}                                 |
 `;
 }
+
+/**
+ * Creates common API headers for Outline API requests.
+ * @param {string} apiToken - The API token for authorization.
+ * @returns {Object} - Headers object.
+ */
+export function createApiHeaders(apiToken) {
+    return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiToken}`
+    };
+}

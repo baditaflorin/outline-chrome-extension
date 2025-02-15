@@ -1,6 +1,6 @@
 // outlineAPI.js
 import { FETCH_TIMEOUT, MAX_RETRIES, INITIAL_BACKOFF } from './config.js';
-import { retryFetch, parseApiError, debugLog } from './utils.js';
+import {retryFetch, parseApiError, debugLog, createApiHeaders} from './utils.js';
 import { OutlineApiError } from './config.js';
 
 function normalizeUrl(outlineUrl) {
@@ -14,10 +14,7 @@ export const OutlineAPI = {
         debugLog("Sending POST request to:", endpoint);
         const response = await retryFetch(endpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiToken}`
-            },
+            headers: createApiHeaders(apiToken),
             body: JSON.stringify({
                 name: collectionName,
                 description: "",
@@ -44,10 +41,7 @@ export const OutlineAPI = {
         debugLog("Sending request to create document with payload:", payload);
         const response = await retryFetch(endpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiToken}`
-            },
+            headers: createApiHeaders(apiToken),
             body: JSON.stringify(payload)
         });
         if (!response.ok) {
@@ -63,10 +57,7 @@ export const OutlineAPI = {
         const endpoint = `${base}/api/documents.info`;
         const response = await retryFetch(endpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${apiToken}`
-            },
+            headers: createApiHeaders(apiToken),
             body: JSON.stringify({ id: documentId })
         });
         if (!response.ok) {
