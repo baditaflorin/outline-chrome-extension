@@ -1,41 +1,29 @@
 // clipper.js
 // This module encapsulates the core logic for sending selected text to Outline.
-// It extracts the business logic from background.js to adhere to the Single Responsibility Principle.
 
-import { debugLog, executeScriptOnTab, createMetaTable } from './utils.js';
+import { debugLog, executeScriptOnTab, createMetaTable, safeExecuteScriptOnTab } from './utils.js';
 import { convertSelectionToMarkdown } from './selectionConverter.js';
 import { createNotification } from './notificationManager.js';
 import { getOrCreateDomainFolder } from './domainFolderManager.js';
-import { getSettings } from './storageManager.js'; // Using StorageManager from Change 4
-import { OutlineAPI } from './outlineAPI.js';
+import { getSettings } from './storageManager.js'; // still used for collectionId if available
+import { getOutlineAPI } from './storageManager.js'; // NEW: centralized API instantiation
 import { showProgressOverlay, showSuccessOverlay } from './overlays.js';
-import { handleError } from './errorHandler.js'; // Centralized error handling
+import { handleError } from './errorHandler.js';
 import { asyncWrapper } from './asyncWrapper.js';
 
-/**
- * Sends the currently selected text to Outline.
- *
- * @param {object} tab - The current tab object.
- * @param {object} info - Context menu info (including selectionText).
- */
 export async function sendSelectionToOutline(tab, info) {
-    // Show the progress overlay.
-    await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: showProgressOverlay,
-    });
+    // Use safe script execution for overlays.
+    await safeExecuteScriptOnTab(tab.id, { func: showProgressOverlay });
 
     try {
-        // Retrieve settings (uses StorageManager for storage abstraction).
-        const { outlineUrl, apiToken, collectionId: savedCollectionId } = await getSettings();
-        if (!outlineUrl || !apiToken) {
-            throw new Error("Outline URL or API token not set. Please configure them in the options page.");
-        }
-        debugLog("Using Outline URL:", outlineUrl);
-        debugLog("Using API token:", apiToken);
+        // Retrieve settings and API instance.
+        const settings = await getSettings();
+        const { collectionId: savedCollectionId } = settings;
+        // Centralized OutlineAPI creation (Change 1)
+        const outlineApi = await getOutlineAPI();
 
-        // Create an instance of the OutlineAPI.
-        const outlineApi = new OutlineAPI(outlineUrl, apiToken);
+        // Log the settings.
+        debugLog("Using Outline API:", outlineApi);
 
         // Retrieve or create collection.
         const collectionName = "Chrome Clippings";
@@ -44,30 +32,25 @@ export async function sendSelectionToOutline(tab, info) {
             debugLog("Found existing collectionId:", collectionId);
         } else {
             collectionId = await outlineApi.createCollection(collectionName);
-            // Save the new collectionId using StorageManager.
             await chrome.storage.local.set({ collectionId });
             debugLog("Created and saved new collectionId:", collectionId);
         }
 
         // Retrieve additional metadata from the page.
-        const metaData = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
+        const metaData = await safeExecuteScriptOnTab(tab.id, {
             func: () => {
                 const metaAuthor = document.querySelector('meta[name="author"]')?.content || "(Not specified)";
                 const metaPublished = document.querySelector('meta[property="article:published_time"]')?.content || "(Not specified)";
                 return { metaAuthor, metaPublished };
-            },
-        })
-            .then((results) => results[0].result)
+            }
+        }).then((results) => results[0].result)
             .catch(() => ({ metaAuthor: "(Not specified)", metaPublished: "(Not specified)" }));
         debugLog("Meta data retrieved:", metaData);
 
-        // Wrap the conversion function with asyncWrapper to ensure consistent error handling.
         const safeConvertSelectionToMarkdown = asyncWrapper(convertSelectionToMarkdown, tab);
         const markdownContent = await safeConvertSelectionToMarkdown(tab.id, info.selectionText);
         debugLog("Markdown content retrieved:", markdownContent);
 
-        // Build document title.
         const pageTitle = tab?.title?.trim() || "";
         const selectionSnippet = info.selectionText.split(" ").slice(0, 10).join(" ");
         let docTitle = pageTitle && selectionSnippet ? `${pageTitle} - ${selectionSnippet}` : (pageTitle || selectionSnippet || "New Document");
@@ -76,7 +59,6 @@ export async function sendSelectionToOutline(tab, info) {
         }
         debugLog("Final document title:", docTitle);
 
-        // Prepare metadata table.
         const createdDate = new Date().toISOString().split("T")[0];
         const clippedDate = new Date().toISOString();
         const metaTable = createMetaTable({
@@ -90,7 +72,7 @@ export async function sendSelectionToOutline(tab, info) {
         const finalText = metaTable + "\n\n" + markdownContent;
 
         // Domain folder logic.
-        const parentDocumentId = await getOrCreateDomainFolder(outlineUrl, apiToken, collectionId, tab);
+        const parentDocumentId = await getOrCreateDomainFolder(outlineApi.baseUrl, outlineApi.apiToken, collectionId, tab);
 
         // Create the clipping document.
         const documentData = await outlineApi.createDocument({
@@ -102,12 +84,10 @@ export async function sendSelectionToOutline(tab, info) {
         });
         debugLog("Document created successfully:", documentData);
 
-        const docUrl = documentData.url || `${outlineUrl.replace(/\/+$/, '')}/doc/${documentData.id}`;
+        const docUrl = documentData.url || `${outlineApi.baseUrl}/doc/${documentData.id}`;
 
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: showSuccessOverlay,
-        });
+        // Use safe script execution to show success overlay.
+        await safeExecuteScriptOnTab(tab.id, { func: showSuccessOverlay });
 
         // Show notification.
         createNotification(
@@ -117,7 +97,6 @@ export async function sendSelectionToOutline(tab, info) {
         );
     } catch (error) {
         debugLog("Error processing the context menu action:", error);
-        // Delegate error handling to our centralized error handler.
         handleError(tab, error);
     }
 }

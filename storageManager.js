@@ -1,5 +1,6 @@
 // storageManager.js
 // Enhanced Storage Manager with in-memory caching
+
 const cache = {};
 
 /**
@@ -11,7 +12,6 @@ const cache = {};
  */
 export function get(key, useSync = true) {
     return new Promise((resolve, reject) => {
-        // If key is a string and is cached, return cached value.
         if (typeof key === 'string' && cache.hasOwnProperty(key)) {
             resolve({ [key]: cache[key] });
             return;
@@ -68,4 +68,19 @@ export async function getSettings() {
         console.error("Error retrieving settings:", error);
         throw error;
     }
+}
+
+/**
+ * **New Helper Function**
+ * Creates and returns an instance of OutlineAPI after retrieving settings.
+ *
+ * @returns {Promise<OutlineAPI>}
+ */
+import { OutlineAPI } from './outlineAPI.js';
+export async function getOutlineAPI() {
+    const { outlineUrl, apiToken } = await getSettings();
+    if (!outlineUrl || !apiToken) {
+        throw new Error("Outline URL or API token is not set. Please configure them in the options page.");
+    }
+    return new OutlineAPI(outlineUrl, apiToken);
 }

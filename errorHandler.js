@@ -1,10 +1,9 @@
 // errorHandler.js
 // This module centralizes error handling logic.
-// Change 3: It reduces duplication by handling overlays and notifications in one place.
-
 import { showErrorOverlay } from './overlays.js';
 import { createNotification } from './notificationManager.js';
 import { debugLog } from './utils.js';
+import { safeExecuteScriptOnTab } from './utils.js'; // NEW: use safeExecuteScriptOnTab
 
 /**
  * Handles errors by showing an error overlay and creating a notification.
@@ -14,8 +13,7 @@ import { debugLog } from './utils.js';
  */
 export function handleError(tab, error) {
     debugLog("Handling error:", error);
-    chrome.scripting.executeScript({
-        target: { tabId: tab.id },
+    safeExecuteScriptOnTab(tab.id, {
         func: showErrorOverlay,
         args: [error.message],
     });

@@ -7,6 +7,7 @@ import { Logger } from './logger.js';
 
 setupNotificationClickListener();
 
+// Create the context menu on installation.
 chrome.runtime.onInstalled.addListener(() => {
     Logger.info("Extension installed, creating context menu item.");
     chrome.contextMenus.create(
@@ -25,16 +26,16 @@ chrome.runtime.onInstalled.addListener(() => {
     );
 });
 
-// Wrap the context menu click handler in an inline function that uses asyncWrapper.
-// This ensures that any errors in our asynchronous logic are caught and handled.
+// **New:** Extracted context menu click handler for clarity.
+async function handleContextMenuClick(info, tab) {
+    if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
+        Logger.debug("Invalid context menu selection.");
+        return;
+    }
+    await sendSelectionToOutline(tab, info);
+}
+
+// Wrap and add the context menu click listener using asyncWrapper.
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    // We wrap an async function so that errors are caught.
-    asyncWrapper(async () => {
-        if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
-            Logger.debug("Invalid context menu selection.");
-            return;
-        }
-        // Execute the core logic for sending the selection.
-        await sendSelectionToOutline(tab, info);
-    }, tab)(); // Immediately invoke the wrapped function.
+    asyncWrapper(handleContextMenuClick, tab)(info, tab);
 });
